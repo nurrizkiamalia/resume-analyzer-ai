@@ -1,4 +1,3 @@
-import { prepareInstructions } from "constants/index";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import FileUploader from "~/components/FileUploader";
@@ -6,9 +5,10 @@ import Navbar from "~/components/Navbar";
 import { convertPdfToImage } from "~/lib/pdf2img";
 import { usePuterStore } from "~/lib/puter";
 import { generateUUID } from "~/lib/utils";
+import {prepareInstructions} from "../../constants";
 
 const Upload = () => {
-  const { auth, isLoading, fs, ai, kv } = usePuterStore();
+  const { fs, ai, kv } = usePuterStore();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusText, setStatusText] = useState("");
@@ -30,8 +30,8 @@ const Upload = () => {
     if(!imageFile.file) return setStatusText('Error: Failed to convert PDF to image');
     setStatusText('Uploading the image...');
 
-    const uploadedImg = await fs.upload([imageFile.file]);
-    if(!uploadedImg) return setStatusText('Error: Failed to upload image');
+    const uploadedImage = await fs.upload([imageFile.file]);
+    if(!uploadedImage) return setStatusText('Error: Failed to upload image');
     
     setStatusText('Preparing Data...')
 
@@ -39,12 +39,12 @@ const Upload = () => {
     const data = {
       id: uuid,
       resumePath: uploadedFile.path,
-      imagePath: uploadedImg.path,
+      imagePath: uploadedImage.path,
       companyName, jobTitle, jobDescription,
       feedback: ''
     }
 
-    await kv.set(`resume: ${uuid}`, JSON.stringify(data));
+    await kv.set(`resume:${uuid}`, JSON.stringify(data));
 
     setStatusText('Analyzing...')
 
@@ -58,9 +58,10 @@ const Upload = () => {
     const feedbackText = typeof feedback.message.content === 'string' ? feedback.message.content : feedback.message.content[0].text;
 
     data.feedback = JSON.parse(feedbackText);
-    await kv.set(`resume: ${uuid}`, JSON.stringify(data));
+    await kv.set(`resume:${uuid}`, JSON.stringify(data));
     setStatusText('Analysis complete, redirecting...');
-    console.log(data)
+    console.log(data);
+    navigate(`/resume/${uuid}`);
   }
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
